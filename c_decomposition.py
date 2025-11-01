@@ -753,7 +753,7 @@ def is_set_cremoved(G, M):
             k = k + 1
     return len(M_T) == len(M), M_T
 
-##极小分离子找c凸包
+#Finding the c-convex hull via minimal separators
 def CMCSA111(CG, R, reverse_CG=None):
     R = set(R)
     M = [x for x in CG if x not in R]
@@ -773,25 +773,7 @@ def CMCSA111(CG, R, reverse_CG=None):
         PA = condition(CG, M, H, reverse_CG)
     return H
 
-#极小分离子找t凸包
-def CMCSA(CG, R, reverse_CG=None):
-    R = set(R)
-    M = [x for x in CG if x not in R]
-    if reverse_CG is None:
-        reverse_CG = reverse_graph(CG)
-    f, Q = ITRSA(CG, M, reverse_CG=reverse_CG, re_MF=True)
-    H = copy.deepcopy(R)
-    while not f:
-        for u, v in Q:
-            u_c = c_Proximal_separator(CG, u, v, reverse_CG=reverse_CG)
-            v_c = c_Proximal_separator(CG, u, v, reverse_CG=reverse_CG)
-            H |= u_c | v_c
-        M = [x for x in CG if x not in H]
-        f, Q = ITRSA(CG, M, reverse_CG=reverse_CG, re_MF=True)
-    return H
-
-
-#找uv之间的导出路
+#Find an inducing path between u and v
 def uv_DCL(CG, u, v, M, reverse_CG=None):
     """
     Check if there exists an inducing path between two vertices in a CG.
@@ -819,7 +801,7 @@ def uv_DCL(CG, u, v, M, reverse_CG=None):
     DCL = BFS_shortest_path(MCG_M_u_v, u, v)  # V+E
     return DCL
 
-#找集合R中全部的导出路
+#finding all inducing paths in R
 def all_DCL(CG, M, reverse_CG=None):
     """
     Check the t-removability of a set of vertices.
@@ -848,7 +830,7 @@ def all_DCL(CG, M, reverse_CG=None):
                 all_D |= set(DLC)
     return all_D
 
-#导出路吸收方法找t凸包
+#FINDING T CONVEX HULL VIA ABSORBING INDUCING PATHS
 def CMCSA_new(CG, R, reverse_CG=None):
     R = set(R)
     M = [x for x in CG if x not in R]
@@ -862,7 +844,7 @@ def CMCSA_new(CG, R, reverse_CG=None):
         All_D = all_DCL(CG, M, reverse_CG)
     return H
 
-#导出路吸收方法找c凸包
+#FINDING C CONVEX HULL VIA ABSORBING INDUCING PATHS
 def CMCSA111_new(CG, R, reverse_CG=None):
     R = set(R)
     M = [x for x in CG if x not in R]
@@ -879,40 +861,39 @@ def CMCSA111_new(CG, R, reverse_CG=None):
         PA = condition(CG, M, H, reverse_CG)
     return H
 
-
-def BFS_shortest_path(graph, start, goal):  # 最短路
-    # 初始化队列，用于存储当前探索的节点及其路径
+def BFS_shortest_path(graph, start, goal):  # Find the shortest path using BFS
+    # Initialize a queue to store the current node being explored and its path
     queue = [(start, [start])]
 
-    # 初始化已访问集合
+    # Initialize a set to keep track of visited nodes
     visited = set()
 
     while queue:
-        # 从队列中取出第一个元素
+        # Dequeue the first element
         (vertex, path) = queue.pop(0)
 
-        # 如果当前节点还没有被访问过
+        # If the current node has not been visited yet
         if vertex not in visited:
-            # 将其标记为已访问
+            # Mark it as visited
             visited.add(vertex)
 
-            # 遍历当前节点的所有邻接节点
+            # Iterate over all adjacent nodes of the current node
             for next_vertex in graph[vertex]:
-                # 如果找到了目标节点
+                # If the target node is found
                 if next_vertex == goal:
-                    # 返回到达目标节点的完整路径
+                    # Return the complete path to the goal node
                     return path + [next_vertex]
 
-                # 否则，将邻接节点及其路径加入队列以供后续探索
+                # Otherwise, enqueue the adjacent node along with its path for further exploration
                 else:
                     queue.append((next_vertex, path + [next_vertex]))
 
-    # 如果队列空了且没有找到目标节点，则返回 None 表示不存在这样的路径
+    # If the queue is exhausted and the goal node is not found, return an empty list
+    # indicating that no such path exists
     return []
 
-
 #####################
-def in_degrees(CG, reverse_CG=None):  # DAG 的入度
+def in_degrees(CG, reverse_CG=None):  # Indegree of a DAG
     if reverse_CG is None:
         reverse_CG = reverse_graph(CG)
     in_dag = dict()
@@ -920,30 +901,30 @@ def in_degrees(CG, reverse_CG=None):  # DAG 的入度
         in_dag[node] = len(reverse_CG[node])
     return in_dag
 
-
-def topoSort(CG, reverse_CG=None):  # DAG 的拓扑序
+def topoSort(CG, reverse_CG=None):  # Topological sort for a DAG
     if reverse_CG is None:
         reverse_CG = reverse_graph(CG)
 
     in_dag = in_degrees(CG, reverse_CG)
 
-    Q = [u for u in in_dag if in_dag[u] == 0]  # 筛选入度为0的顶点
+    Q = [u for u in in_dag if in_dag[u] == 0]  # Select vertices with in-degree zero
     Seq = []
 
     while Q:
-        u = Q.pop()  # 默认从最后一个删除
+        u = Q.pop()  # Remove the last element by default (acts as a stack)
         Seq.append(u)
         for v in CG[u]:
-            in_dag[v] -= 1  # 移除子节点的入边
+            in_dag[v] -= 1  # Remove the incoming edge to child node v
             if in_dag[v] == 0:
-                Q.append(v)  # 再次加入下一次迭代生成的入度为0的顶点
-    if len(Seq) == len(CG):  # 输出的顶点数是否与图中的顶点数相等
+                Q.append(v)  # Add newly zero in-degree vertices for the next iteration
+
+    if len(Seq) == len(CG):  # Check if the number of output vertices equals the total number of vertices
         return Seq
     else:
-        print("G is not the directed acyclic graph.")
+        print("G is not a directed acyclic graph.")
         return None
 
-# C分解
+# C-DECOMPOSITION
 def EDC(CG, reverse_CG=None):  
     if reverse_CG is None:
         reverse_CG = reverse_graph(CG)
@@ -958,399 +939,5 @@ def EDC(CG, reverse_CG=None):
             D_G.append(H)
     return D_G
 
-# t分解
-def MDC(CG, reverse_CG=None):  
-    if reverse_CG is None:
-        reverse_CG = reverse_graph(CG)
-    topo = topoSort(CG, reverse_CG)
-    D_G = []
-    for v in topo[::-1]:
-        #v = topo.pop(-1)
-        PA = pa(CG, v, reverse_CG)
-        fa = PA | {v}
-        if all(not fa.issubset(h) for h in D_G):
-            H = CMCSA(CG, fa, reverse_CG)
-            D_G.append(H)
-    return D_G
-
-#导出路找t分解
-def MDC111(CG, reverse_CG=None):  
-    if reverse_CG is None:
-        reverse_CG = reverse_graph(CG)
-    topo = topoSort(CG, reverse_CG)
-    D_G = []
-    for v in topo[::-1]:
-        #v = topo.pop(-1)
-        PA = pa(CG, v, reverse_CG)
-        fa = PA | {v}
-        if all(not fa.issubset(h) for h in D_G):
-            H = CMCSA_new(CG, fa, reverse_CG)
-            D_G.append(H)
-    return D_G
-
-def build_junction_tree(c_decomposition):
-    """
-    Build a junction tree from C-decomposition.
-    
-    Args:
-        c_decomposition (list): List of C-convex sets (subgraphs).
-        
-    Returns:
-        junction_tree (nx.Graph): The constructed junction tree.
-    """
-    # Create a graph where nodes are C-convex sets and edges are weighted by intersection size
-    G = nx.Graph()
-    
-    # Add nodes (each node is a frozenset representing a C-convex set)
-    for h in c_decomposition:
-        G.add_node(frozenset(h))
-    
-    # Add edges with weights = intersection size
-    for i in range(len(c_decomposition)):
-        for j in range(i + 1, len(c_decomposition)):
-            intersection = c_decomposition[i] & c_decomposition[j]
-            if intersection:
-                G.add_edge(
-                    frozenset(c_decomposition[i]),
-                    frozenset(c_decomposition[j]),
-                    weight=len(intersection)
-                )
-    
-    # Compute the maximal spanning tree (MST) to ensure RIP
-    junction_tree = nx.maximum_spanning_tree(G)
-    
-    return junction_tree
-
-def dict_to_networkx(graph_dict, is_directed=True):
-    """
-    Convert a dictionary representing a graph into a NetworkX graph object.
-    
-    Parameters:
-        graph_dict (dict): The graph represented as a dictionary.
-        is_directed (bool): Whether the resulting NetworkX graph should be directed.
-        
-    Returns:
-        G (networkx.Graph or networkx.DiGraph): The NetworkX graph object.
-    """
-    if is_directed:
-        G = nx.DiGraph()
-    else:
-        G = nx.Graph()
-
-    # Add nodes to the graph
-    for node in graph_dict.keys():
-        G.add_node(node)
-
-    # Add edges to the graph
-    for u, neighbors in graph_dict.items():
-        for v in neighbors:
-            # Check if edge already exists to prevent adding duplicates
-            if not G.has_edge(u, v):
-                G.add_edge(u, v)
-
-    return G
 
 
-def find_subsets(sets):
-    # 创建一个字典用于存储每个集合及其索引
-    set_dict = {frozenset(s): i for i, s in enumerate(sets)}
-    
-    # 检查是否有子集关系
-    for i, s in enumerate(sets):
-        for j, other in enumerate(sets):
-            if i != j and s.issubset(other) and s != other:
-                print(f"集合 {i} 是集合 {j} 的子集")
-                return True
-    return False
-
-
-def has_running_intersection_property(sets):
-    # 如果集合列表为空或只有一个集合，则直接返回 True，因为它们自然满足传交性
-    if not sets or len(sets) <= 1:
-        return True
-    sets = [set(x) for x in sets]  # set(x) list(x) tuple(x)
-    # print(sets)
-    E_T = list()
-    # 遍历每个集合，从第二个集合开始（索引为1）
-    for t in range(1, len(sets)):
-
-        current_set = sets[t]  # 当前检查的集合 U_t
-        # 计算所有之前集合的并集 (U_1 到 U_(t-1)) 的并集
-        previous_union = set().union(*sets[:t])
-        # 计算当前集合与之前所有集合并集的交集
-        intersection = current_set.intersection(previous_union)
-
-        found = False  # 标记是否找到符合条件的 U_p
-        # 在之前的集合中寻找一个集合 U_p，使得交集是 U_p 的子集
-        for p in range(t):  # 检查 U_p 其中 p < t
-            if intersection.issubset(sets[p]):  # 如果交集是 U_p 的子集
-                found = True  # 找到合适的 U_p
-                E_T.append([[t, p], intersection])
-                # E_T.append([[t,p])
-                break  # 跳出循环，继续下一个 U_t 的检查
-
-        if not found:  # 如果没有找到任何合适的 U_p
-            return False  # 返回 False 表示不满足传交性
-
-    # 如果所有集合都通过了检查，则返回 True 表示满足传交性
-    return E_T
-
-def check_all_permutations(sets):
-    """
-    检查所有可能的排列，是否存在一种顺序使得集合满足传交性。
-    """
-    from itertools import permutations
-
-    # 遍历所有可能的排列
-    for perm in permutations(sets):
-        E_T = has_running_intersection_property(list(perm))
-        if E_T:
-            # print(f"找到满足传交性的排列: {list(perm)}")
-            return list(perm), E_T  # 存在至少一种满足条件的排列
-
-    # print("没有任何排列满足传交性。")
-    return False, False  # 所有排列都不满足条件
-
-
-def edges_list(nodes, E_T):
-    edges_list = []
-    # for e_s in E_T:
-    for e_s, _ in E_T:
-        e_e = (tuple(nodes[e_s[0]]), tuple(nodes[e_s[1]]))
-        edges_list.append(e_e)
-    return edges_list
-
-
-def separators(perm, E_T):
-    separators = []
-    for (t, p), sep in E_T:
-        # 可选：验证 sep == perm[t] ∩ perm[p]
-        # assert sep == perm[t] & perm[p], "Separator mismatch!"
-        separators.append(sep)
-    return separators
-
-
-
-# # Assuming Generate_lwf is defined as you provided
-# graph_dict = Generate_lwf(n=8, edge_density=0.3, p_undirected=0.5)
-
-# # Convert the dictionary to a NetworkX DiGraph object
-# G = dict_to_networkx(graph_dict, is_directed=True)
-
-
-
-# Now you can use NetworkX functions to work with G, including plotting it
-#############
-if __name__ == "__main__":
-    # G = {
-    #     'A': {'B': 'b'},
-    #     'B': {},
-    #     'D': {'E': 'b'},
-    #     'C': {'B': 'b', 'E': 'b', 'D': 'b', 'F': 'b'},
-    #     'E': {'F': 'b'},
-    #     'F': {'G': 'b'},
-    #     'H': {'B': 'b','I':'b'},
-    #     'I':{},
-    #     'G': {'H': 'b', 'B': 'b'}
-    #     }
-    G = {
-        'D': {'E': 'b'},
-        'C': {'E': 'b', 'D': 'b', 'F': 'b'},
-        'E': {'F': 'b'},
-        'F': {'G': 'b'},
-        'G': {}
-    }
-    # H = topoSort(G)
-    R = ["F","G"]
-    M = [node for node in G if node not in R]
-    H1 = CMCSA111_new(G, R) #C凸
-    # H1= all_DCL(G, M)
-    print(H1)
-    # H = CMCSA_new(G, R)  # T凸
-
-    G = {
-        'v1': {'v6': 'b', 'v7': 'b', 'v8': 'b', 'v13': 'b', 'v16': 'b', 'v17': 'b', 'v19': 'b', 'v20': 'b'},
-        'v2': {'v4': 'b', 'v16': 'b', 'v17': 'b'},
-        'v3': {'v8': 'b', 'v9': 'b', 'v16': 'b', 'v18': 'b', 'v20': 'b'},
-        'v4': {'v7': 'b', 'v8': 'b'},
-        'v5': {'v9': 'b', 'v15': 'b'},
-        'v6': {'v12': 'b', 'v17': 'b'},
-        'v7': {'v8': 'b', 'v15': 'b', 'v16': 'b'},
-        'v8': {'v13': 'b'},
-        'v9': {'v10': 'b', 'v15': 'b'},
-        'v10': {'v13': 'b', 'v15': 'b', 'v20': 'b'},
-        'v11': {'v16': 'b', 'v19': 'b'},
-        'v12': {'v16': 'b', 'v19': 'b'},
-        'v13': {'v17': 'b'},
-        'v14': {'v20': 'b'},
-        'v15': {'v20': 'b'},
-        'v16': {'v20': 'b'},
-        'v17': {},
-        'v18': {'v20': 'b'},
-        'v19': {'v20': 'b'},
-        'v20': {},
-    }
-    H = EDC(G)
-    print(H)
-
-    # M = ['B','A','C','D','E']
-    # H2 = uv_DCL(G,'A','E',M)
-    # H4= is_set_cremoved(G, M)
-    # H3=EDC(G)
-    # print(H)
-    # print(H1)
-    # print(H2)
-    # print(H3)
-    # print(H4)
-
-
-
-    # R = ['T', 'L', 'E', 'B', 'S', 'D']
-    # H = CMCSA111_new(G, R)
-    # H1 = EDC(G)
-    # print(f"分解：{H1}")
-    #
-    # G = {
-    #         "AFF": {'CDR': 'b','APA': 'b','ALN': 'b'},
-    #         "CDR": {'DET': 'b'},
-    #         'SAN': {'AFF': 'b', 'APA': 'b','ALN': 'b', 'AIS': 'b','CDR': 'b'},
-    #         'AIS': {'SUS': 'b', 'EGC': 'b'},
-    #         'ALN': {'APA': 'b','PER': 'b', 'FTW': 'b','SUS': 'b','DET': 'b'},
-    #         'APA': {},
-    #         'PER': {'DET': 'b'},
-    #         'DET': {},
-    #         'SUS': {'FTW': 'b','EGC': 'b','HOS': 'b'},
-    #         'FTW': {'EGC': 'b','DET': 'b'},
-    #         'HOS': {},
-    #         'EGC': {'HOS': 'b'}
-    #     }
-    # R = ['AFF','HOS']
-    # M=[x for x in G if x not in R]
-    # H1 = is_set_cremoved(G,M)
-    # H = EDC(G)
-    # # H1 = EDC(G)
-    # print(f"分解：{H,H1}")
-
-    # G ={'X0': {'X1': 'b', 'X2': 'b', 'X3': 'b', 'X8': 'b', 'X9': 'b'},
-    #      'X1': {'X2': 'b', 'X6': 'b', 'X7': 'b'},
-    #      'X2': {'X4': 'b', 'X8': 'b', 'X9': 'b'},
-    #      'X3': {'X9': 'b'},
-    #      'X4': {'X9': 'b'},
-    #      'X5': {'X8': 'b'},
-    #      'X6': {},
-    #      'X7': {},
-    #      'X8': {},
-    #      'X9': {}}
-    #
-    # R = ['x','y','u','v']
-    # H1 = EDC(G)
-    # print(f"分解：{H1}")
-
-
-    # 首先生成随机链图
-    # n = 8  # 节点数
-    # edge_density = 0.2  # 边密度
-    # p_undirected = 0.1 # 双向边概率
-    #
-    # # 生成随机链图
-    # G = Generate_lwf(n, edge_density, p_undirected)
-    # plot_result(G, 'j.png')
-    #
-    # # 随机选择一部分节点作为R集合
-    # R = random.sample(list(G.keys()), 2)  # 随机选择3个节点
-    # print(R)
-    # M = [x for x in G if x not in R]
-    # path = uv_DCL(G, R[0], R[1], M)
-    # print(f"从 {R[0]} 到 {R[1]} 的最短路径是: {' -> '.join(path)}")
-
-    # print(f"\n随机选择的R集合: {R}")
-    #
-    # # 使用两种方法计算t凸包
-    # H1 = CMCSA(G, R)
-    # H2 = CMCSA_new(G, R)
-
-    # 比较结果
-    # print(f"\nCMCSA方法得到的t凸包: {H1}")
-    # print(f"CMCSA_new方法得到的t凸包: {H2}")
-    # print(f"两种方法结果是否一致: {H1 == H2}")
-
-    # G = {
-    #     'r1':{'a':'b'},
-    #     'b':{'a':'b','c':'b','d':'b'},
-    #     'c':{ 'd':'b'},
-    #     'a':{'e':'b'},
-    #     'e':{'r2':'b'},
-    #     'd':{'r2':'b'},
-    #     # 'f':{'a':'b','g':'b','d':'b'},
-    #     # 'g':{'d':'b'},
-    #     'r2':{}
-    # }
-
-
-
-    # b = time.time()
-
-    # H = [{'v1'}, {'v2', 'v17', 'v13', 'v5', 'v7', 'v10', 'v16', 'v3', 'v4'}, {'v15', 'v2', 'v14', 'v10', 'v3'}, {'v20', 'v8', 'v6', 'v5', 'v10', 'v9', 'v3', 'v4', 'v18'}, {'v10', 'v5', 'v9', 'v19', 'v3', 'v6', 'v12'}, {'v11'}]
-    #
-    # perm, E_T = check_all_permutations(H)
-    # sep_list = separators(perm, E_T)
-    # print(H)
-    # print(sep_list)
-    # print(perm)
-    # # # G =  {'Erk': {'Akt': 'b'}, 'Akt': {}, 'Mek': {'Erk': 'b'}, 'PIP3': {'PIP2': 'b'}, 'PIP2': {}, 'PKA': {'Akt': 'b', 'Erk': 'b', 'Jnk': 'b', 'Mek': 'b', 'P38': 'b', 'Raf': 'b'}, 'Jnk': {}, 'P38': {}, 'Raf': {'Mek': 'b'}, 'PKC': {'Jnk': 'b', 'Mek': 'b', 'P38': 'b', 'PKA': 'b', 'Raf': 'b'}, 'Plcg': {'PIP2': 'b', 'PIP3': 'b'}}
-    # R = ['r1', 'r2']
-    # M = [x for x in G if x not in R]
-    # A = CMCSA111_new(G,R)
-    # B = CMCSA111(G,R)
-    # D = CMCSA(G, R)
-    # E= CMCSA_new(G, R)
-    # C = is_set_cremoved(G, M)
-    # print(A, B, C, D, E)
-    # plot_result(G, 'j.png')
-
-    # junction_tree = build_junction_tree(c_decomposition)
-    # print(build_junction_tree(c_decomposition))
-    # # 绘制图形
-    # pos = nx.spring_layout(junction_tree)  # 定义布局
-    # nx.draw(junction_tree, pos, with_labels=True, node_size=700, node_color="lightblue", font_size=10, font_weight="bold")
-    # labels = nx.get_edge_attributes(junction_tree, 'weight')  # 获取边的权重作为标签
-    # nx.draw_networkx_edge_labels(junction_tree, pos, edge_labels=labels)
-    
-    # plt.title("Junction Tree Visualization")
-    # plt.show()
-    # print(LD_HJT(G))
-
-    # n = 100
-    # edge_density = 0.3
-    # p_undirected = 0
-    # G = Generate_lwf(n, edge_density, p_undirected)
-    # R = random.sample(list(G.keys()), 5)
-    # # print(R)
-    # H = CMCSA(G, R)
-    # # M =[i for i in G if i not in H]
-    # # print(is_set_cremoved(G, M))
-    # print(n-len(H))
-
-
-    # for i in range(100):
-    #     lwf = Generate_lwf(n, edge_density, p_undirected)
-    #     # print(lwf)
-    #
-    #     if 'v4' in lwf['v1'].keys() or 'v1' in lwf['v4'].keys():
-    #         continue
-    # time1 = time.time()
-    # for i in range(10):
-    #     C = c_Proximal_separator(CG, 'v1', 'v4')
-    # print(time.time() - time1)
-    # time2 = time.time()
-    # for i in range(10):
-    #     b = reach_set2(CG, ['v1', 'v4'])
-    # print(time.time() - time2)
-
-    # if C != b:
-    #     print(f'c={C}, b={b}')
-    #     plot_result(lwf, f'{i}.png',title=f'c={C}, b={b}')
-
-    # M = random.sample(list(lwf.keys()), m)
-    # MF = ITRSA(lwf, M, re_MF=True)
-    # plot_result(lwf, 'j.png', title=f"M={M}, MF = {MF}")
