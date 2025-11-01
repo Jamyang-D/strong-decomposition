@@ -21,7 +21,7 @@ Provide methods for finding convex hulls (e.g., via minimal separators or absorb
     DAG = Generate_DAG(n, edge_density)
     ```
    
-2. *Identify c-convex hull**:
+2. **Identify c-convex hull**:
     ```python
     from your_script import CMCSA111_new
     
