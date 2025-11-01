@@ -20,7 +20,7 @@ import pprint
 from IPython.display import Image
 from pgmpy.utils import get_example_model
 import numpy as np
-####################
+
 # Randomly generate a connected CG
 def generate_random_lwf(n, edge_density):
     """
@@ -938,6 +938,7 @@ def EDC(CG, reverse_CG=None):
             H = CMCSA111_new(CG, fa, reverse_CG)
             D_G.append(H)
     return D_G
+
 
 
 
